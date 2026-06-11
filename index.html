@@ -348,12 +348,14 @@ p.lead{font-size:16px;color:var(--gray);line-height:1.75;max-width:580px}
 .g1-start{text-align:center;padding:12px 0 4px}
 
 /* GAME 2 */
-#game2-wrap{position:relative;max-width:700px;margin:0 auto;border-radius:12px;overflow:hidden;background:#0a1a0b;height:340px;cursor:crosshair;user-select:none}
-#game2-canvas{display:block;width:100%;height:100%}
+#game2-wrap{position:relative;max-width:700px;margin:0 auto;border-radius:12px;overflow:hidden;cursor:crosshair;user-select:none;touch-action:none}
+#game2-canvas{display:block;width:100%;height:auto;border-radius:12px;}
 .g2-hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;max-width:700px;margin-left:auto;margin-right:auto;gap:8px;flex-wrap:wrap}
 .g2-hud span{font-size:12px;font-weight:700;color:var(--white);background:var(--surface2);padding:6px 14px;border-radius:20px;border:1px solid var(--border)}
 .g2-hud b{color:var(--teal)}
 .g2-start{text-align:center;padding:12px 0 4px}
+.g2-legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;max-width:700px;margin-left:auto;margin-right:auto}
+.g2-legend span{font-size:12px;color:var(--gray);background:var(--surface2);padding:4px 12px;border-radius:20px;border:1px solid var(--border)}
 
 /* GAME 3 */
 #game3-wrap{max-width:700px;margin:0 auto}
@@ -700,8 +702,15 @@ footer strong{color:var(--lime)}
         <span>⏱ Tempo: <b id="g2-time">30</b>s</span>
         <span>❌ Erros: <b id="g2-miss">0</b>/3</span>
       </div>
+      <div class="g2-legend">
+        <span>🐝 Salvar abelha</span>
+        <span>🦋 Salvar borboleta</span>
+        <span>🐞 Salvar joaninha</span>
+        <span>🐛 NÃO clicar</span>
+        <span>🦟 NÃO clicar</span>
+      </div>
       <div id="game2-wrap">
-        <canvas id="game2-canvas" width="700" height="340"></canvas>
+        <canvas id="game2-canvas" width="700" height="420"></canvas>
       </div>
       <div class="g1-msg" id="g2-msg">Clique nas abelhas 🐝 e borboletas 🦋 — evite as lagartas 🐛!</div>
       <div class="g2-start"><button class="btn btn-teal" id="g2-btn" onclick="startGame2()">▶ Iniciar jogo</button></div>
@@ -954,7 +963,7 @@ initGame1();
 // ==================== GAME 2: SALVAR POLINIZADORES ====================
 const G2 = {
   canvas:null, ctx:null, running:false, timer:30, score:0, miss:0, raf:null,
-  bugs:[], lastTick:0, spawnTimer:0, SPAWN_INTERVAL:1100,
+  bugs:[], lastTick:0, spawnTimer:0, SPAWN_INTERVAL:900,
   GOOD:[{e:'🐝',label:'abelha'},{e:'🦋',label:'borboleta'},{e:'🐞',label:'joaninha'}],
   BAD:[{e:'🐛',label:'lagarta'},{e:'🦟',label:'mosquito'}],
 };
@@ -962,43 +971,106 @@ const G2 = {
 function spawnBug2(){
   const isGood=Math.random()>0.28;
   const type=isGood?G2.GOOD[Math.floor(Math.random()*G2.GOOD.length)]:G2.BAD[Math.floor(Math.random()*G2.BAD.length)];
-  const speed=(Math.random()*0.4+0.25)*(Math.random()<0.5?1:-1);
-  const vy=(Math.random()*0.3+0.1)*(Math.random()<0.5?1:-1);
+  const speed=(Math.random()*0.35+0.2)*(Math.random()<0.5?1:-1);
+  const vy=(Math.random()*0.25+0.08)*(Math.random()<0.5?1:-1);
   const startSide=Math.random()<0.5;
+  const cw=G2.canvas.width, ch=G2.canvas.height;
   G2.bugs.push({
     emoji:type.e, good:isGood, label:type.label,
-    x:startSide?-30:G2.canvas.width+30,
-    y:40+Math.random()*(G2.canvas.height-80),
+    x:startSide?-40:cw+40,
+    y:60+Math.random()*(ch-120),
     vx:startSide?Math.abs(speed):-Math.abs(speed),
-    vy, size:36, life:4000, age:0, hit:false, hitAnim:0
+    vy, size:52, life:5000, age:0, hit:false, hitAnim:0,
+    wobble:Math.random()*Math.PI*2, wobbleSpeed:0.03+Math.random()*0.02,
+    scale:1
   });
 }
 
 function drawGame2(){
   const ctx=G2.ctx, cw=G2.canvas.width, ch=G2.canvas.height;
   ctx.clearRect(0,0,cw,ch);
+
+  // Background gradient
   const grad=ctx.createLinearGradient(0,0,0,ch);
-  grad.addColorStop(0,'#071209'); grad.addColorStop(0.6,'#0a1a0c'); grad.addColorStop(1,'#0d2010');
+  grad.addColorStop(0,'#071410'); grad.addColorStop(0.55,'#0b1d0d'); grad.addColorStop(1,'#0e2612');
   ctx.fillStyle=grad; ctx.fillRect(0,0,cw,ch);
+
   // Grid dots
-  ctx.fillStyle='rgba(155,255,76,0.05)';
-  for(let x=0;x<cw;x+=40) for(let y=0;y<ch;y+=40){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill();}
-  for(let i=0;i<8;i++){ctx.font='18px serif';ctx.fillText('🌿',i*95+10,ch-14);}
+  ctx.fillStyle='rgba(45,255,212,0.06)';
+  for(let x=0;x<cw;x+=40) for(let y=0;y<ch;y+=40){ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();}
+
+  // Ground strip
+  const gnd=ctx.createLinearGradient(0,ch-55,0,ch);
+  gnd.addColorStop(0,'rgba(20,50,20,0)'); gnd.addColorStop(1,'rgba(20,60,20,0.6)');
+  ctx.fillStyle=gnd; ctx.fillRect(0,ch-55,cw,55);
+  // Plants on ground
+  ctx.font='24px serif'; ctx.textAlign='center';
+  for(let i=0;i<10;i++) ctx.fillText('🌿',i*72+36,ch-10);
+
+  // Idle screen message
+  if(!G2.running && G2.bugs.length===0){
+    ctx.fillStyle='rgba(45,255,212,0.12)';
+    ctx.beginPath(); ctx.roundRect(cw/2-160,ch/2-44,320,88,16); ctx.fill();
+    ctx.strokeStyle='rgba(45,255,212,0.35)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(cw/2-160,ch/2-44,320,88,16); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 16px Inter,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Pressione ▶ Iniciar jogo',cw/2,ch/2-12);
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='13px Inter,sans-serif';
+    ctx.fillText('Salve 🐝🦋🐞 — evite 🐛🦟',cw/2,ch/2+16);
+    return;
+  }
+
+  // Bugs
   G2.bugs.forEach(b=>{
     ctx.save();
-    if(b.hit){ctx.globalAlpha=Math.max(0,1-b.hitAnim/0.4);}
-    ctx.font=`${b.size}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(b.emoji,b.x,b.y);
-    if(!b.hit){
+    const alpha=b.hit ? Math.max(0,1-b.hitAnim/0.45) : 1;
+    ctx.globalAlpha=alpha;
+
+    // Glow ring for good bugs
+    if(!b.hit && b.good){
       const fade=b.age/b.life;
-      if(fade>0.7){
-        ctx.globalAlpha=(1-fade)*3.33;
-        ctx.fillStyle='rgba(155,255,76,0.08)';
-        ctx.beginPath();ctx.arc(b.x,b.y,22,0,Math.PI*2);ctx.fill();
-      }
+      const pulse=0.5+0.5*Math.sin(Date.now()*0.006);
+      const glowA=(fade>0.65?(1-fade)*3:1)*0.22*pulse;
+      ctx.globalAlpha=alpha*glowA;
+      ctx.fillStyle=fade>0.65?'rgba(255,200,0,0.3)':'rgba(45,255,212,0.25)';
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.size*0.7,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=alpha;
     }
+
+    // Hit burst
+    if(b.hit && b.good){
+      ctx.globalAlpha=Math.max(0,0.7-b.hitAnim);
+      ctx.fillStyle='rgba(155,255,76,0.4)';
+      const r=b.size*0.6+b.hitAnim*80;
+      ctx.beginPath(); ctx.arc(b.x,b.y,r,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=alpha;
+    }
+
+    // Emoji
+    const scl=b.hit?Math.max(0.1,1-b.hitAnim*1.5):1;
+    ctx.translate(b.x,b.y); ctx.scale(scl,scl);
+    ctx.font=`${b.size}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(b.emoji,0,0);
+
+    // Warning ring when expiring
+    if(!b.hit && b.good && b.age/b.life>0.65){
+      ctx.globalAlpha=alpha*0.8;
+      ctx.strokeStyle='#FFD700'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.arc(0,0,b.size*0.6,0,Math.PI*2); ctx.stroke();
+    }
+
     ctx.restore();
   });
+
+  // Timer bar at top
+  if(G2.running){
+    const frac=G2.timer/30;
+    ctx.fillStyle='rgba(0,0,0,0.4)';
+    ctx.fillRect(0,0,cw,7);
+    const barColor=frac>0.5?'#2DFFD4':frac>0.25?'#FFD700':'#FF4444';
+    ctx.fillStyle=barColor;
+    ctx.fillRect(0,0,cw*frac,7);
+  }
 }
 
 function startGame2(){
@@ -1006,6 +1078,7 @@ function startGame2(){
   document.getElementById('g2-score').textContent=0;
   document.getElementById('g2-time').textContent=30;
   document.getElementById('g2-miss').textContent=0;
+  document.getElementById('g2-msg').textContent='Clique nas abelhas 🐝 e borboletas 🦋 — evite as lagartas 🐛!';
   document.getElementById('g2-btn').style.display='none';
   G2.running=true; G2.lastTick=performance.now(); G2.spawnTimer=0;
   G2.canvas=document.getElementById('game2-canvas');
@@ -1023,18 +1096,20 @@ function loopGame2(ts){
   G2.spawnTimer+=dt;
   if(G2.spawnTimer>G2.SPAWN_INTERVAL){G2.spawnTimer=0;spawnBug2();}
   G2.bugs=G2.bugs.filter(b=>{
-    b.x+=b.vx*dt*0.06; b.y+=b.vy*dt*0.06;
-    if(b.hit){b.hitAnim+=dt/1000;return b.hitAnim<0.5;}
+    b.x+=b.vx*dt*0.055; b.y+=b.vy*dt*0.055;
+    b.wobble+=b.wobbleSpeed;
+    b.y+=Math.sin(b.wobble)*0.4;
+    if(b.hit){b.hitAnim+=dt/1000;return b.hitAnim<0.55;}
     b.age+=dt;
     if(b.age>=b.life){
       if(b.good){G2.miss++;document.getElementById('g2-miss').textContent=G2.miss;document.getElementById('g2-msg').textContent='💨 Escapou! Salve os polinizadores!';}
       return false;
     }
-    if(b.y<20||b.y>G2.canvas.height-20) b.vy*=-1;
-    return b.x>-60&&b.x<G2.canvas.width+60;
+    if(b.y<30||b.y>G2.canvas.height-50) b.vy*=-1;
+    return b.x>-80&&b.x<G2.canvas.width+80;
   });
   drawGame2();
-  requestAnimationFrame(loopGame2);
+  G2.raf=requestAnimationFrame(loopGame2);
 }
 
 function handleGame2Click(e){
@@ -1045,18 +1120,18 @@ function handleGame2Click(e){
   for(let i=G2.bugs.length-1;i>=0;i--){
     const b=G2.bugs[i];
     if(b.hit) continue;
-    if(Math.hypot(cx-b.x,cy-b.y)<30){
-      b.hit=true;
+    if(Math.hypot(cx-b.x,cy-b.y)<b.size*0.65){
+      b.hit=true; b.hitAnim=0;
       if(b.good){G2.score++;document.getElementById('g2-score').textContent=G2.score;document.getElementById('g2-msg').textContent=`✅ ${b.emoji} ${b.label} salvo! +1`;}
       else{G2.miss++;document.getElementById('g2-miss').textContent=G2.miss;document.getElementById('g2-msg').textContent=`❌ Era uma ${b.label} nociva! -1 vida`;}
-      setTimeout(()=>document.getElementById('g2-msg').textContent='',800);
+      setTimeout(()=>document.getElementById('g2-msg').textContent='',900);
       break;
     }
   }
 }
 
 function endGame2(){
-  G2.running=false; G2.canvas.onclick=null;
+  G2.running=false; cancelAnimationFrame(G2.raf); G2.canvas.onclick=null;
   const s=G2.score;
   const msg=s>=18?'🌸 Mestre dos polinizadores!':s>=10?'🐝 Boa proteção!':'🌱 Tente de novo!';
   document.getElementById('g2-msg').textContent=`Fim! Você salvou ${s} insetos benéficos. ${msg}`;
@@ -1117,8 +1192,7 @@ function drawFarm(){
     ctx.strokeStyle=filled?(correct?'rgba(155,255,76,0.6)':'rgba(255,60,60,0.5)'):'rgba(255,255,255,0.1)';
     ctx.lineWidth=filled?2:1;
     ctx.beginPath(); ctx.roundRect(s.x,s.y,s.w,s.h,10); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='bold 10px Inter,sans-serif'; ctx.textAlign='center';
-    ctx.fillText(s.label, s.x+s.w/2, s.y+14);
+    ctx.textAlign='center';
     if(filled){
       const piece=F.pieces.find(p=>p.id===filled);
       ctx.font='30px serif'; ctx.textBaseline='middle';
